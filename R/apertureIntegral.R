@@ -6,7 +6,8 @@
 #' @param psi Angle from the surface normal to the centre of the aperture (rad)
 #' @param beta Half cone angle of the aperture (rad)
 #' @return Detected intensity from the circular aperture
-intensityAnl <- function(psi, beta) 0.25*pi*cos(psi)*(1 - cos(2*beta) )
+#' @export
+intensityAnl <- function(psi, beta) 0.5*pi*cos(psi)*(1 - cos(2*beta) )
 
 
 #' Aperture integral
@@ -16,8 +17,10 @@ intensityAnl <- function(psi, beta) 0.25*pi*cos(psi)*(1 - cos(2*beta) )
 #' beta + psi >= pi/2.
 #' 
 #' @param psi Angle from the surface normal to the centre of the aperture (rad)
-#' @param beta Half cone angle of the aperture (rad)
+#'            can be array type
+#' @param beta Half cone angle of the aperture (rad), cannot be array type
 #' @return Detected intensity from the circular aperture
+#' @export
 intensityInt <- function(psi, beta) {
     cosChi <- function(theta, phi, psi, beta) {
         dDotn <- cos(theta)*(sin(psi)*tan(theta)*cos(phi) + cos(psi))
@@ -26,30 +29,75 @@ intensityInt <- function(psi, beta) {
     }
     
     integrand <- function(theta, phi) sin(theta)*cosChi(theta, phi, psi, beta)
-    result <- quad2d(integrand, 0, beta, 0, pi)
+    result <- 2*quad2d(integrand, 0, beta, 0, pi)
     return(result)
 }
+
 
 #' Detected intensity in an aperture
 #'
 #' Calculate the signal detected as a function of psi and beta for a circular
 #' aperture, chooses the analytic or integral model as appropriate.
 #' 
-#' @param psi Angle from the surface normal to the centre of the aperture (deg)
-#' @param beta Half cone angle of the aperture (deg)
+#' @param psi Angle from the surface normal to the centre of the aperture (rad)
+#'            can be array type
+#' @param beta Half cone angle of the aperture (rad), cannot be array type
 #' @return Detected intensity from the circular aperture
 #' @export
-intensity <- function(psi, beta) {
-    psi <- psi*pi/180
-    beta <- beta*pi/180
-    result <- if_else(psi + beta > pi/2, intensityInt(psi, beta), intensityAnl(psi, beta))
-    return(result)
+intensityCircular <- function(psi, beta) {
+    if_else(psi + beta > pi/2,
+            intensityInt(psi, beta),
+            intensityAnl(psi, beta))
 }
 
 
+#' Detected intensity with radius
+#' 
+#' Calculates the signal detected as a function of an aperture radius and
+#' distance from the sample as well as the surface orientation. Uses the
+#' integral model where appropriate.
+#' 
+#' @param psi Angle from the surface normal to the centre of the aperture (rad)
+#'            can be array type
+#' @param r Radius of the detector aperture (same units as d), cannot be array
+#'          type
+#' @param d Distance from the sample to the aperture (same units as r), cannot
+#'          be array type
+#' @return Detected intensity from the circular aperture
+#' @export
+intensityRadius <- function(psi, r, d) {
+    tmp <- r/d
+    beta <- atan(tmp)
+    if_else(psi + beta > pi/2,
+            intensityInt(psi, beta),
+            pi*cos(psi)*(tmp^2/(tmp^2 + 1)))
+}
 
 
-
+#' Elliptical aperture
+#' 
+#' Calcuates the signal detected for an elliptical aperture based on the two
+#' principle half cone angles and the surface orientation.
+#' 
+#' @param psi Angle from the surface normal to the centre of the aperture (rad)
+#'            can be array type
+#' @param beta_a Half cone angle 1, this is in the plane that the surface
+#'               element is tilted in, (rad)
+#' @param beta_b Half cone angle 2, this is perpendicular to the plane of the
+#'               surface element tilt, (rad)
+#' @return Detected intensity from the elliptical aperture
+#' @export
+intensityElliptical <- function(psi, beta_a, beta_b) {
+    a <- tan(beta_a)
+    b <- tan(beta_b)
+    
+    theta1 <- function(phi) atan(a*b/sqrt( a^2*(sin(phi))^2 + b^2*(cos(phi))^2 ))
+    
+    integrand1 <- function(phi) (theta1(phi) - sin(theta1(phi))*cos(theta1(phi)))*cos(phi) 
+    integrand2 <- function(phi) 1 - (cos(theta1(phi)))^2
+    
+    0.5*sin(psi)*quad(integrand1, 0, 2*pi) + 0.5*cos(psi)*quad(integrand2, 0, 2*pi)
+}
 
 
 #--------------------------- Analysis functions -------------------------------#
