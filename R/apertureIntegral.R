@@ -91,12 +91,83 @@ intensityElliptical <- function(psi, beta_a, beta_b) {
     a <- tan(beta_a)
     b <- tan(beta_b)
     
-    theta1 <- function(phi) atan(a*b/sqrt( a^2*(sin(phi))^2 + b^2*(cos(phi))^2 ))
+    theta1 <- function(phi) atan(a*b/sqrt( a^2*(sin(phi))^2 + b^2*(cos(phi))^2 ) )
     
     integrand1 <- function(phi) (theta1(phi) - sin(theta1(phi))*cos(theta1(phi)))*cos(phi) 
     integrand2 <- function(phi) 1 - (cos(theta1(phi)))^2
     
     0.5*sin(psi)*quad(integrand1, 0, 2*pi) + 0.5*cos(psi)*quad(integrand2, 0, 2*pi)
+}
+
+#' Monte-Carlo method to calculate the signal from an elliptical aperture. For 
+#' use where there is partial masking.
+#' 
+#' 
+#' @export
+intensityEllipticalMC <- function(psi, beta_a, beta_b, n) {
+    # Random theta,phi according to a cosine distribution
+    phi <- 2*pi*rand(n, 1)
+    s_theta <- sqrt(rand(n, 1))
+    c_theta <- sqrt(1 - s_theta^2)
+    
+    x <- cos(phi)*s_theta
+    y <- sin(phi)*s_theta
+    z <- c_theta
+    x2 <- x*cos(psi) + z*sin(psi)
+    y2 <- y
+    z2 <- -x*sin(psi) + z*cos(psi)
+    
+    # Consider the (x2,y2) coordinate
+    a <- sin(beta_a)
+    b <- sin(beta_b)
+    
+    sum((x2^2/a^2 + y2^2/b^2 < 1) & z2 >= 0)/n
+}
+
+
+#' Solid angle of an ellipse
+#' 
+#' Calculates the solid angle subtended by an ellipse directly above the point
+#' of interest and with the size of the ellipse specified in half cone angles
+#' rather than lengths.
+#' 
+#' @param beta_a One of the principle half cone angles
+#' @param beta_b The second principle half cone angle
+#' @return The solid angle subtended
+#' @export
+omegaEllipseBeta <- function(beta_a, beta_b) {
+    omegaEllipse(0, 0, 1, tan(beta_a), tan(beta_b))
+}
+
+
+#' Calculates the solid angle using the formula derived by John T. Conway
+#'    2010. Is faster than the alternative integral in 'solid_angle_calc'.
+#'
+#' @param p The distance between the point of interest and the centre of the
+#'          ellipse, projected into the plane of the ellipse along the major axis.
+#'          Should not be negative.
+#' @param q The distance between the point of interest and the centre of the
+#'          ellipse, projected into the plane of the elllipse along the minor
+#'          axis. Should not be negative
+#' @param h The perpendicular distance between the point of interest and the plane
+#'          of the ellipse. Should not be negative.
+#' @param a The semi-axis of the ellipse along which the point of interest lies
+#'          when it is projected into the plane of the ellipse.
+#' @param b The other semi-axis of the ellipse
+#' @return The solid angle subtended by the ellipse from the point of interest
+#' @export
+omegaEllipse <- function(p, q, h, a, b) {
+    integrand_general <- function (phi) {
+        tmp = p*p + q*q + h*h + 2*a*p*cos(phi) + 2*b*q*sin(phi) + 
+            (a*cos(phi))^2 + (b*sin(phi))^2
+        term1 = 1 - h/(sqrt(tmp))
+        tmp = tmp - h*h
+        term2 = (a*b + p*b*cos(phi) + q*a*sin(phi))/(tmp)
+        result = term1*term2
+        return(result)
+    }
+    
+    quad(integrand_general, 0, 2*pi)
 }
 
 
