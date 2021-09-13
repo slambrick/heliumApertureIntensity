@@ -2,6 +2,7 @@
 
 export(apertureConductance)
 export(condeConductance)
+export(coneForwards)
 export(diffNoise)
 export(hole_conductance)
 export(intensityAnl)
