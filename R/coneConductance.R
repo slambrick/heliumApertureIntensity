@@ -50,6 +50,21 @@ coneForwards <- function(R0, Rk, L, alpha, k) {
     return(Ca)
 }
 
+
+ks <- c(0.8421633, 1.1439458,
+        1.7889395, 2.8472929,
+        4.9470413, 9.9143445)
+alphas <- c(1.856290,  9.604104,
+            20.306832, 29.835717,
+            39.453707, 49.851455) 
+#' Calculated correction factor
+#' 
+#' Uses the data presented by Mercier to get the correction factor for their
+#' method from the half angle of the cone.
+#' 
+#' @param alpha Angle of the sides of the cone(deg) 
+calc_k <- splinefun(alphas, ks)
+
 #' Backwards cone conductance
 #'
 #' Calculates the backwards conductance of a cone using the formula developed by
@@ -61,13 +76,14 @@ coneForwards <- function(R0, Rk, L, alpha, k) {
 #' @param alpha Angle of the sides of the cone (deg)
 #' @return The conductance of the aperture in litres per second
 #' @export
-coneConductance <- function(R0, Rk, L, alpha, k) {
-    # TODO: calculate k from the inputs
+coneConductance <- function(R0, Rk, L, alpha) {
+    k <- calc_k(alpha)
     Ca <- coneForwards(R0, Rk, L, alpha, k)
     gamma <- 1 + (16/3)*k*tan(alpha*pi/180)
     Cr <- Ca/gamma
     return(Cr)
 }
+
 
 #' Pumping effect
 #' 

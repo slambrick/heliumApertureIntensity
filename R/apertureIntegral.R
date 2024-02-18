@@ -22,13 +22,13 @@ intensityAnl <- function(psi, beta) 0.5*pi*cos(psi)*(1 - cos(2*beta) )
 #' @return Detected intensity from the circular aperture
 #' @export
 intensityInt <- function(psi, beta) {
-    cosChi <- function(theta, phi, psi, beta) {
+    cosChi <- function(theta, phi, psi) {
         dDotn <- cos(theta)*(sin(psi)*tan(theta)*cos(phi) + cos(psi))
-        result <- if_else(dDotn < 0, 0, dDotn)
+        result <- ifelse(dDotn < 0, 0, dDotn)
         return(result)
     }
     
-    integrand <- function(theta, phi) sin(theta)*cosChi(theta, phi, psi, beta)
+    integrand <- function(theta, phi) sin(theta)*cosChi(theta, phi, psi)
     result <- 2*quad2d(integrand, 0, beta, 0, pi)
     return(result)
 }
@@ -45,9 +45,9 @@ intensityInt <- function(psi, beta) {
 #' @return Detected intensity from the circular aperture
 #' @export
 intensityCircular <- function(psi, beta) {
-    if_else(psi + beta > pi/2,
-            intensityInt(psi, beta),
-            intensityAnl(psi, beta))
+    ifelse(psi + beta > pi/2,
+           intensityInt(psi, beta),
+           intensityAnl(psi, beta))
 }
 
 
@@ -68,15 +68,15 @@ intensityCircular <- function(psi, beta) {
 intensityRadius <- function(psi, r, d) {
     tmp <- r/d
     beta <- atan(tmp)
-    if_else(psi + beta > pi/2,
-            intensityInt(psi, beta),
-            pi*cos(psi)*(tmp^2/(tmp^2 + 1)))
+    ifelse(psi + beta > pi/2,
+           intensityInt(psi, beta),
+           pi*cos(psi)*(tmp^2/(tmp^2 + 1)))
 }
 
 
 #' Elliptical aperture
 #' 
-#' Calcuates the signal detected for an elliptical aperture based on the two
+#' Calculates the signal detected for an elliptical aperture based on the two
 #' principle half cone angles and the surface orientation.
 #' 
 #' @param psi Angle from the surface normal to the centre of the aperture (rad)
@@ -121,7 +121,7 @@ intensityEllipticalMC <- function(psi, beta_a, beta_b, n) {
     a <- sin(beta_a)
     b <- sin(beta_b)
     
-    sum((x2^2/a^2 + y2^2/b^2 < 1) & z2 >= 0)/n
+    pi*sum((x2^2/a^2 + y2^2/b^2 < 1) & z2 >= 0)/n
 }
 
 
@@ -147,7 +147,7 @@ omegaEllipseBeta <- function(beta_a, beta_b) {
 #'          ellipse, projected into the plane of the ellipse along the major axis.
 #'          Should not be negative.
 #' @param q The distance between the point of interest and the centre of the
-#'          ellipse, projected into the plane of the elllipse along the minor
+#'          ellipse, projected into the plane of the ellipse along the minor
 #'          axis. Should not be negative
 #' @param h The perpendicular distance between the point of interest and the plane
 #'          of the ellipse. Should not be negative.
